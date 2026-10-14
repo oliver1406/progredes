@@ -1,0 +1,8 @@
+FROM alpine:latest
+RUN <<EOF
+apk update
+apk add figlet
+apk cache clean --purge
+rm -rf /var/cache/apk/*
+echo $HOME > minha-pasta.txt
+EOF

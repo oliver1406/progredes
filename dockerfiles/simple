@@ -1,0 +1,5 @@
+from alpine:latest
+run ["apk", "update"]
+run ["apk", "add", "figlet"]
+run ["apk", "cache", "clean", "--purge"]
+run echo $HOME > minha-pasta.txt

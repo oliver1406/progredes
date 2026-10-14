@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servidor Online - Teste de Hospedagem</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            width: 85%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .status-badge {
+            background-color: #2ecc71;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+
+        .hero {
+            background: #fff;
+            padding: 80px 0;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            color: #1e3c72;
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto 30px auto;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #2a5298;
+            color: #fff;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #1e3c72;
+        }
+
+        .features {
+            padding: 60px 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-top: 4px solid #2a5298;
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: #1e3c72;
+        }
+
+        footer {
+            background-color: #1a1a1a;
+            color: #888;
+            text-align: center;
+            padding: 30px 0;
+            font-size: 14px;
+            margin-top: 40px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container nav">
+            <div class="logo">🚀 MeuServidor</div>
+            <div class="status-badge">● Servidor Online</div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Conexão Estabelecida com Sucesso!</h1>
+            <p>Se você está vendo esta página, significa que a configuração do seu servidor web está funcionando perfeitamente. Este é um ambiente de teste seguro e isolado.</p>
+            <a href="#" class="btn">Atualizar Página</a>
+        </div>
+    </section>
+
+    <section class="container features">
+        <div class="grid">
+            <div class="card">
+                <h3>📊 Estatísticas do Servidor</h3>
+                <p>Taxa de resposta ideal, compressão de dados ativada e leitura de arquivos estáticos configurada sem erros.</p>
+            </div>
+            <div class="card">
+                <h3>🔒 Segurança HTTPS</h3>
+                <p>Ambiente pronto para aplicação de certificados SSL e cabeçalhos de segurança otimizados para produção.</p>
+            </div>
+            <div class="card">
+                <h3>⚡ Alta Performance</h3>
+                <p>Estrutura leve criada para testar a velocidade de entrega, cache e processamento do seu host.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 MeuServidor Teste. Todos os direitos "fictícios" reservados.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

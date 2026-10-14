@@ -1,0 +1,8 @@
+FROM alpine:latest
+RUN addgroup -S ifmt && adduser -S -g ifmt yodao
+WORKDIR /app
+COPY . /app
+RUN apk update
+RUN apk add python3
+USER yodao
+ENTRYPOINT ["python3", "program.py"]

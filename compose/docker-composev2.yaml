@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: docker.io/library/traefik:v3.7
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "8081:80"     # Traefik HTTP
+      - "9000:8080"   # Traefik Dashboard
+    volumes:
+      # Adicionada a flag :z para garantir permissão no Podman/SELinux
+      - /run/user/1000/podman/podman.sock:/var/run/docker.sock:ro,z
+    networks:
+      - proxy
+
+  app:
+    image: app:latest
+    build:
+      context: .
+    labels:
+      - "traefik.enable=true"
+      # Corrigida a sintaxe da regra para Host(`app.localhost`)
+      - "traefik.http.routers.app.rule=Host(`app.localhost`)"
+      - "traefik.http.routers.app.entrypoints=web"
+      - "traefik.http.services.app.loadbalancer.server.port=80"
+    networks:
+      - proxy
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    driver: bridge
