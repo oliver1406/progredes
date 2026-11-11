@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: Microlab
+    orgId: 1
+    folder: Microlab
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /runtime/grafana/dashboards

@@ -1,0 +1,16 @@
+{
+  "uid": "microlab-operations",
+  "title": "Microlab · operação e aceite",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "time": {"from": "now-6h", "to": "now"},
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1, "type": "text", "title": "O que precisa estar validado",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
+      "options": {"mode": "markdown", "content": "Este painel documenta o aceite e não comprova saúde.\n\nNo datasource **Zabbix Microlab**, confirme o host **microlab-docker** e **Microlab: idade do último backup de banco**. As métricas Linux pertencem à visão do agente/container e da base Linux do Docker; não representam todo o Windows ou hardware físico.\n\nNo host **microlab-services**, confirme HTTP de homologação/produção e eventos de problema/recuperação. Crie painéis após validar consultas, nomes e alcance dos itens.\n\n**Pendente até teste real:** alertas recebidos, monitor independente da máquina, backup externo e restauração. Execute docs/ACEITE.md."}
+    }
+  ]
+}

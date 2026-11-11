@@ -1,0 +1,1 @@
+Crie primeiro o usuário dedicado de leitura no Zabbix. No perfil Docker local, use `microlab.ps1 config ZABBIX_GRAFANA_USER grafana-reader`, `microlab.ps1 secret ZABBIX_GRAFANA_PASSWORD` e `microlab.ps1 grafana` (ou microlab.sh). O administrador temporário usa a API do Grafana, guarda a senha em secureJsonData e testa a conexão. Nenhuma senha entra neste diretório.

@@ -1,0 +1,9 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+RUN apk add --no-cache bash curl git jq nodejs util-linux openssl coreutils tar gzip \
+    && docker compose version && node --version
+COPY . /opt/microlab/
+RUN find /opt/microlab -type f -name '*.sh' -exec sed -i 's/\r$//' {} + \
+    && chmod +x /opt/microlab/scripts/ops-entrypoint.sh
+WORKDIR /workspace
+ENTRYPOINT ["/bin/bash", "/opt/microlab/scripts/ops-entrypoint.sh"]

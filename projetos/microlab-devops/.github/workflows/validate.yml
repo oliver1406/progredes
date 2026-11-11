@@ -1,0 +1,19 @@
+name: Validar repositório oficial
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Testes de configuração e API simulada
+        run: node --test tests/core.test.mjs
+      - name: Sintaxe Bash e modelo Compose
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for script in scripts/*.sh microlab.sh; do bash -n "$script"; done
+          node scripts/validation-env.mjs "$RUNNER_TEMP/microlab.env"
+          docker compose -f infra/docker-compose.yml --env-file "$RUNNER_TEMP/microlab.env" --env-file infra/images.lock.env --profile '*' config -q

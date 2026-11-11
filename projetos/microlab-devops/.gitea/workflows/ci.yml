@@ -1,0 +1,28 @@
+name: Microlab - validar e construir candidato
+on:
+  push:
+    branches: [main]
+jobs:
+  candidate:
+    runs-on: microlab
+    timeout-minutes: 20
+    env:
+      CI_REPOSITORY: ${{ gitea.repository }}
+      CI_COMMIT_SHA: ${{ gitea.sha }}
+      CI_TOKEN: ${{ gitea.token }}
+    steps:
+      - name: Checkout do commit recebido
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          [[ "$CI_COMMIT_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$CI_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          auth="$(printf 'x-access-token:%s' "$CI_TOKEN" | base64 | tr -d '\n')"
+          git -c "http.extraHeader=Authorization: Basic $auth" clone "http://gitea:3000/$CI_REPOSITORY.git" source
+          unset auth CI_TOKEN
+          cd source
+          git checkout --detach "$CI_COMMIT_SHA"
+          test "$(git rev-parse HEAD)" = "$CI_COMMIT_SHA"
+      - name: Sintaxe, build e smoke test da imagem
+        shell: bash
+        run: cd source && bash scripts/ci.sh

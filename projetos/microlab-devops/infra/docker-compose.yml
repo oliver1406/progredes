@@ -1,0 +1,248 @@
+name: microlab
+
+x-common: &common
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: {max-size: '10m', max-file: '3'}
+
+networks:
+  proxy: {name: microlab-proxy, external: true}
+  ci_cd: {name: microlab-ci}
+  backend: {internal: true}
+  staging_backend: {internal: true}
+  monitoring: {}
+
+volumes:
+  npm_data: {}
+  npm_letsencrypt: {}
+  gitea_data: {}
+  runner_data: {}
+  postgres_data: {}
+  staging_postgres_data: {}
+  zabbix_db_data: {}
+  grafana_data: {}
+  duplicati_data: {}
+  portainer_data: {}
+  ci_evidence: {name: microlab-ci-evidence}
+  runtime_config: {name: microlab-runtime-config, external: true}
+  backups: {name: microlab-backups, external: true}
+  backup_status: {name: microlab-backup-status}
+
+services:
+  npm:
+    <<: *common
+    image: ${NPM_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [proxy]
+    ports:
+      - '${BIND_IP:-127.0.0.1}:80:80'
+      - '${BIND_IP:-127.0.0.1}:443:443'
+      - '${BIND_IP:-127.0.0.1}:81:81'
+    volumes: [npm_data:/data, npm_letsencrypt:/etc/letsencrypt]
+
+  gitea:
+    <<: *common
+    image: ${GITEA_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [proxy, ci_cd]
+    environment:
+      USER_UID: '1000'
+      USER_GID: '1000'
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__server__ROOT_URL: ${GITEA_ROOT_URL:?Defina GITEA_ROOT_URL}
+      GITEA__server__LOCAL_ROOT_URL: http://gitea:3000/
+      GITEA__server__SSH_PORT: '2222'
+      GITEA__actions__ENABLED: 'true'
+      GITEA__service__DISABLE_REGISTRATION: 'true'
+    ports:
+      - '${BIND_IP:-127.0.0.1}:3000:3000'
+      - '${BIND_IP:-127.0.0.1}:2222:22'
+    volumes: [gitea_data:/data]
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:3000/api/healthz']
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  gitea-runner:
+    <<: *common
+    profiles: [ci]
+    image: ${RUNNER_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [ci_cd]
+    depends_on: {gitea: {condition: service_healthy}}
+    environment:
+      GITEA_INSTANCE_URL: http://gitea:3000
+      GITEA_RUNNER_NAME: microlab-trusted
+      CONFIG_FILE: /runtime/runner-config.runtime.yaml
+    volumes:
+      - runner_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runtime_config:/runtime:ro
+
+  postgres:
+    <<: *common
+    image: ${POSTGRES_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [backend]
+    environment:
+      POSTGRES_USER: microlab
+      POSTGRES_DB: microlab
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U microlab -d microlab']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  postgres-staging:
+    <<: *common
+    image: ${POSTGRES_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [staging_backend]
+    environment:
+      POSTGRES_USER: microlab
+      POSTGRES_DB: microlab
+      POSTGRES_PASSWORD: ${STAGING_DB_PASSWORD:?Defina STAGING_DB_PASSWORD}
+    volumes: [staging_postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U microlab -d microlab']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app-staging:
+    <<: *common
+    profiles: [apps]
+    image: ${STAGING_IMAGE:-microlab-app:unreleased}
+    networks: [proxy, staging_backend]
+    ports: ['${BIND_IP:-127.0.0.1}:8081:8080']
+    depends_on: {postgres-staging: {condition: service_healthy}}
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+  app-prod:
+    <<: *common
+    profiles: [apps]
+    image: ${PROD_IMAGE:-microlab-app:unreleased}
+    networks: [proxy, backend]
+    ports: ['${BIND_IP:-127.0.0.1}:8082:8080']
+    depends_on: {postgres: {condition: service_healthy}}
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+  zabbix-db:
+    <<: *common
+    image: ${POSTGRES_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [monitoring]
+    environment:
+      POSTGRES_USER: zabbix
+      POSTGRES_DB: zabbix
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD:?Defina ZABBIX_DB_PASSWORD}
+    volumes: [zabbix_db_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U zabbix -d zabbix']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  zabbix-server:
+    <<: *common
+    image: ${ZABBIX_SERVER_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [monitoring, proxy]
+    depends_on: {zabbix-db: {condition: service_healthy}}
+    environment:
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_USER: zabbix
+      POSTGRES_DB: zabbix
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD:?Defina ZABBIX_DB_PASSWORD}
+
+  zabbix-agent:
+    <<: *common
+    image: ${ZABBIX_AGENT_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [monitoring]
+    depends_on: {zabbix-server: {condition: service_started}}
+    entrypoint: [/usr/sbin/zabbix_agent2]
+    command: [-f, -c, /runtime/zabbix/agent2.conf]
+    volumes: [runtime_config:/runtime:ro, backup_status:/status:ro]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+  zabbix-web:
+    <<: *common
+    image: ${ZABBIX_WEB_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [monitoring, proxy]
+    depends_on:
+      zabbix-db: {condition: service_healthy}
+      zabbix-server: {condition: service_started}
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_USER: zabbix
+      POSTGRES_DB: zabbix
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD:?Defina ZABBIX_DB_PASSWORD}
+      ZBX_SERVER_NAME: Microlab
+      PHP_TZ: ${TZ:-America/Cuiaba}
+    ports: ['${BIND_IP:-127.0.0.1}:8080:8080']
+
+  grafana:
+    <<: *common
+    image: ${GRAFANA_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [monitoring, proxy]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Defina GRAFANA_ADMIN_PASSWORD}
+      GF_SECURITY_SECRET_KEY: ${GRAFANA_SECRET_KEY:?Defina GRAFANA_SECRET_KEY}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_PLUGINS_PREINSTALL_SYNC: alexanderzobnin-zabbix-app@6.10.1
+      GF_PATHS_PROVISIONING: /runtime/grafana/provisioning
+    ports: ['${BIND_IP:-127.0.0.1}:3001:3000']
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - runtime_config:/runtime:ro
+
+  backup:
+    <<: *common
+    image: ${POSTGRES_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [backend, staging_backend, monitoring]
+    depends_on:
+      postgres: {condition: service_healthy}
+      postgres-staging: {condition: service_healthy}
+      zabbix-db: {condition: service_healthy}
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
+      STAGING_DB_PASSWORD: ${STAGING_DB_PASSWORD:?Defina STAGING_DB_PASSWORD}
+      ZABBIX_DB_PASSWORD: ${ZABBIX_DB_PASSWORD:?Defina ZABBIX_DB_PASSWORD}
+      BACKUP_UID: ${HOST_UID:?Defina HOST_UID}
+      BACKUP_GID: ${HOST_GID:?Defina HOST_GID}
+    entrypoint: [/bin/bash, /runtime/scripts/backup-db.sh]
+    volumes:
+      - backups:/backups
+      - backup_status:/status
+      - runtime_config:/runtime:ro
+    healthcheck:
+      test: [CMD-SHELL, 'test -f /backups/db/LAST_SUCCESS && test -z "$$(find /backups/db/LAST_SUCCESS -mmin +1500 -print)"']
+      interval: 30s
+      timeout: 5s
+      retries: 1
+
+  duplicati:
+    <<: *common
+    image: ${DUPLICATI_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [monitoring]
+    environment:
+      SETTINGS_ENCRYPTION_KEY: ${DUPLICATI_ENCRYPTION_KEY:?Defina DUPLICATI_ENCRYPTION_KEY}
+      DUPLICATI__WEBSERVICE_PASSWORD: ${DUPLICATI_UI_PASSWORD:?Defina DUPLICATI_UI_PASSWORD}
+    volumes: [duplicati_data:/data, backups:/source:ro]
+    ports: ['${BIND_IP:-127.0.0.1}:8200:8200']
+
+  portainer:
+    <<: *common
+    profiles: [admin]
+    image: ${PORTAINER_IMAGE:?Execute scripts/lock-images.sh}
+    networks: [proxy]
+    volumes: [/var/run/docker.sock:/var/run/docker.sock, portainer_data:/data]
+    ports: ['${BIND_IP:-127.0.0.1}:9443:9443']

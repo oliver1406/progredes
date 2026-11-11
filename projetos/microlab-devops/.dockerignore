@@ -1,0 +1,15 @@
+.git
+.env
+**/.env
+**/runner-config.runtime.yaml
+infra/secrets
+state
+backups
+exports
+source
+export
+*.tgz
+*.tar
+*.dump
+.unlazy
+*.log
