@@ -76,3 +76,12 @@ O agente em container cobre sua visão Linux e o marcador de backup. **Não cert
 Veja [a evidência local](docs/VALIDACAO-LOCAL.md). Foram conferidos modelo Compose, sintaxe, testes de configuração/API simulada e fronteiras do lançador PowerShell com Docker simulado. **Nenhum container foi iniciado neste computador porque não há Docker instalado/disponível.** Build, runner, promoção, restauração e reboot continuam pendentes de execução real; não há garantia operacional integral.
 
 Os [relatórios dos anexos originais](docs/REVISAO.md) são históricos e registram a revisão anterior baseada em Debian. As instruções operacionais vigentes são este README e os documentos acima. O projeto remoto GitHub ainda não foi criado.
+
+
+Projeto criado por:
+
+Ian Gonçalo Rodrigues Vaz de Almeida
+Yann Carlos Vasconcelos de Oliveira
+Gabriel Fernando Mogenio Do Nascimento
+Murilo Ribeiro Fontes
+Clay Pierre
